@@ -5,7 +5,7 @@ import tempfile
 import os
 import json
 import time
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Tuple
 from datetime import datetime, timedelta
 
 # Set environment variables to avoid compilation issues
@@ -72,7 +72,7 @@ def run_code(code: str) -> Any:
             [sys.executable, temp_file],
             capture_output=True,
             text=True,
-            timeout=10
+            timeout=60
         )
         
         os.unlink(temp_file)
@@ -92,6 +92,8 @@ def run_code(code: str) -> Any:
             return "Success"
         else:
             return f"Error: {result.stderr}"
+    except subprocess.TimeoutExpired:
+        return "Error: Code execution timed out (60s limit exceeded)"
     except Exception as e:
         return f"Error: {str(e)}"
 
@@ -137,6 +139,50 @@ def generate_response(model, tokenizer, messages, max_new_tokens=512, temperatur
     # Decode and return the generated text
     generated_text = tokenizer.decode(outputs[0], skip_special_tokens=True)
     return generated_text
+
+def generate_batch_responses(model, tokenizer, batch_messages, max_new_tokens=512, temperature=1.0, top_p=0.95, top_k=64, do_sample=True):
+    """Generate responses for a batch of message sets using the fine-tuned model"""
+    
+    # Apply chat template to all inputs
+    batch_texts = []
+    for messages in batch_messages:
+        text = tokenizer.apply_chat_template(
+            messages,
+            tokenize=False,
+            add_generation_prompt=True,
+        ).removeprefix('<bos>')
+        batch_texts.append(text)
+    
+    # Tokenize all inputs with padding
+    inputs = tokenizer(
+        batch_texts,
+        return_tensors="pt",
+        padding=True,
+        truncation=True,
+        max_length=2048  # Adjust based on your model's context length
+    ).to("cuda")
+    
+    # Generate responses for the batch
+    with torch.no_grad():
+        outputs = model.generate(
+            input_ids=inputs["input_ids"],
+            attention_mask=inputs["attention_mask"],
+            max_new_tokens=max_new_tokens,
+            temperature=temperature,
+            top_p=top_p,
+            top_k=top_k,
+            do_sample=do_sample,
+            pad_token_id=tokenizer.eos_token_id,
+            use_cache=False,
+        )
+    
+    # Decode all generated texts
+    generated_texts = []
+    for i, output in enumerate(outputs):
+        generated_text = tokenizer.decode(output, skip_special_tokens=True)
+        generated_texts.append(generated_text)
+    
+    return generated_texts
 
 def calculate_eta(completed: int, total: int, execution_times: List[float]) -> str:
     """Calculate ETA based on average execution time."""
@@ -245,62 +291,39 @@ def save_result_incrementally(result: Dict, output_path: str = "gsm8k/evaluation
     with open(output_path, 'w', encoding='utf-8') as f:
         json.dump(data, f, indent=2, ensure_ascii=False)
 
-# Main evaluation function
-if __name__ == "__main__":
-    # Configuration
-    MODEL_PATH = "ThomasTheMaker/gm3-270m-TinyGSM-all"
-    DATASET_PATH = "gsm8k/dataset.json"
+def process_batch(model, tokenizer, batch_items, batch_indices, output_file, batch_start_time):
+    """Process a batch of questions and return results."""
+    batch_results = []
     
-    print("Loading model...")
-    model, tokenizer = load_model(MODEL_PATH)
-    
-    print("Loading dataset...")
-    dataset = load_dataset(DATASET_PATH)
-    
-    results = []
-    execution_times = []
-    start_time = time.time()
-    
-    # Initialize results file
-    output_file = "gsm8k/evaluation_results.json"
-    initialize_results_file(output_file)
-    print(f"Initialized results file: {output_file}")
-    
-    print(f"\nProcessing {len(dataset)} questions...")
-    for i, item in enumerate(dataset):
-        question = item["question"]
-        expected_answer = item["numerical_answer"]
+    try:
+        # Prepare batch messages
+        batch_messages = []
+        for item in batch_items:
+            messages = [
+                {'role': 'system', 'content': 'You are a helpful assistant that solves math problems step by step. Please provide your solution as a Python function that returns the numerical answer.'},
+                {'role': 'user', 'content': f'Solve this math problem: {item["question"]}'}
+            ]
+            batch_messages.append(messages)
         
-        question_start_time = time.time()
+        # Generate batch responses
+        batch_responses = generate_batch_responses(
+            model=model,
+            tokenizer=tokenizer,
+            batch_messages=batch_messages,
+            max_new_tokens=512,
+            temperature=0.7,
+            top_p=0.9,
+            top_k=50,
+            do_sample=True
+        )
         
-        # Calculate and display ETA
-        eta = calculate_eta(i, len(dataset), execution_times)
-        elapsed = time.time() - start_time
-        print(f"\nQuestion {i+1}/{len(dataset)}: Processing... (ETA: {eta}, Elapsed: {format_duration(elapsed)})")
-        
-        # Create messages for the model
-        messages = [
-            {'role': 'system', 'content': 'You are a helpful assistant that solves math problems step by step. Please provide your solution as a Python function that returns the numerical answer.'},
-            {'role': 'user', 'content': f'Solve this math problem: {question}'}
-        ]
-        
-        # Generate response
-        try:
-            response = generate_response(
-                model=model,
-                tokenizer=tokenizer,
-                messages=messages,
-                max_new_tokens=512,
-                temperature=0.7,  # Lower temperature for more consistent results
-                top_p=0.9,
-                top_k=50,
-                do_sample=True
-            )
+        # Process each response in the batch
+        for idx, (item, response, question_idx) in enumerate(zip(batch_items, batch_responses, batch_indices)):
+            question = item["question"]
+            expected_answer = item["numerical_answer"]
             
-            # Extract code from response
+            # Extract and run code
             extracted_code = extract_python_code(response)
-            
-            # Run the extracted code
             execution_result = run_code(extracted_code)
             
             # Determine status
@@ -321,13 +344,12 @@ if __name__ == "__main__":
             else:
                 status = "INCORRECT"
             
-            # Calculate execution time for this question
-            question_time = time.time() - question_start_time
-            execution_times.append(question_time)
+            # Calculate individual question time (approximate)
+            question_time = (time.time() - batch_start_time) / len(batch_items)
             
-            # Store result for summary
+            # Store result
             result = {
-                "question_idx": i+1,
+                "question_idx": question_idx + 1,
                 "question": question,
                 "expected_answer": expected_answer,
                 "model_response": response,
@@ -336,32 +358,230 @@ if __name__ == "__main__":
                 "status": status,
                 "execution_time": question_time
             }
-            results.append(result)
+            
+            batch_results.append(result)
             
             # Save result incrementally
             save_result_incrementally(result, output_file)
             
-            print(f"Question {i+1}: {status} (Time: {format_duration(question_time)})")
-            
-        except Exception as e:
-            question_time = time.time() - question_start_time
-            execution_times.append(question_time)
-            
-            print(f"Question {i+1}: ERROR - {e} (Time: {format_duration(question_time)})")
+            print(f"Question {question_idx + 1}: {status}")
+    
+    except Exception as e:
+        # Handle batch-level errors
+        batch_time = time.time() - batch_start_time
+        question_time = batch_time / len(batch_items)
+        
+        for idx, (item, question_idx) in enumerate(zip(batch_items, batch_indices)):
             result = {
-                "question_idx": i+1,
-                "question": question,
-                "expected_answer": expected_answer,
+                "question_idx": question_idx + 1,
+                "question": item["question"],
+                "expected_answer": item["numerical_answer"],
                 "model_response": "",
                 "extracted_code": "",
-                "execution_result": f"Error: {e}",
+                "execution_result": f"Batch Error: {e}",
                 "status": "ERROR",
                 "execution_time": question_time
             }
-            results.append(result)
-            
-            # Save result incrementally
+            batch_results.append(result)
             save_result_incrementally(result, output_file)
+            print(f"Question {question_idx + 1}: ERROR - {e}")
+    
+    return batch_results
+
+def load_existing_results(output_path: str = "gsm8k/evaluation_results.json") -> Tuple[List[Dict], int]:
+    """Load existing results and return them along with the next question index to process."""
+    if not os.path.exists(output_path):
+        return [], 0
+    
+    try:
+        with open(output_path, 'r', encoding='utf-8') as f:
+            data = json.load(f)
+        
+        existing_results = data.get("results", [])
+        next_index = len(existing_results)
+        
+        print(f"Found existing results file with {len(existing_results)} completed questions.")
+        print(f"Resuming from question {next_index + 1}")
+        
+        return existing_results, next_index
+    except (json.JSONDecodeError, KeyError) as e:
+        print(f"Error reading existing results file: {e}")
+        print("Starting fresh evaluation...")
+        return [], 0
+
+# Main evaluation function
+if __name__ == "__main__":
+    # Configuration
+    MODEL_PATH = "ThomasTheMaker/gm3-270m-TinyGSM-all"
+    DATASET_PATH = "gsm8k/dataset.json"
+    BATCH_SIZE = 4  # Adjust based on your GPU memory (1-8 recommended)
+    
+    # You can adjust BATCH_SIZE based on your GPU:
+    # - RTX 4090/A100: 8-16
+    # - RTX 3080/3090: 4-8  
+    # - RTX 3070 or lower: 2-4
+    # - If you get CUDA out of memory errors, reduce batch size
+    
+    print("Loading model...")
+    model, tokenizer = load_model(MODEL_PATH)
+    
+    print("Loading dataset...")
+    dataset = load_dataset(DATASET_PATH)
+    
+    execution_times = []
+    start_time = time.time()
+    
+    # Check for existing results and resume if possible
+    output_file = "gsm8k/evaluation_results.json"
+    existing_results, start_index = load_existing_results(output_file)
+    
+    if start_index == 0:
+        # Initialize fresh results file
+        initialize_results_file(output_file)
+        print(f"Initialized fresh results file: {output_file}")
+        results = []
+    else:
+        # Resume from existing results
+        results = existing_results
+        print(f"Resuming evaluation from question {start_index + 1}")
+    
+    remaining_questions = len(dataset) - start_index
+    print(f"\nProcessing {remaining_questions} remaining questions with batch size {BATCH_SIZE}...")
+    
+    # Process in batches
+    for batch_start in range(start_index, len(dataset), BATCH_SIZE):
+        batch_end = min(batch_start + BATCH_SIZE, len(dataset))
+        batch_items = dataset[batch_start:batch_end]
+        batch_indices = list(range(batch_start, batch_end))
+        
+        batch_start_time = time.time()
+        
+        # Calculate and display ETA
+        completed_this_session = batch_start - start_index
+        eta = calculate_eta(completed_this_session, len(dataset) - start_index, execution_times)
+        elapsed = time.time() - start_time
+        
+        print(f"\nBatch {batch_start//BATCH_SIZE + 1}: Processing questions {batch_start+1}-{batch_end}... (ETA: {eta}, Elapsed: {format_duration(elapsed)})")
+        
+        # Process the batch
+        try:
+            batch_results = process_batch(
+                model=model,
+                tokenizer=tokenizer,
+                batch_items=batch_items,
+                batch_indices=batch_indices,
+                output_file=output_file,
+                batch_start_time=batch_start_time
+            )
+            
+            results.extend(batch_results)
+            
+            # Calculate batch time
+            batch_time = time.time() - batch_start_time
+            execution_times.append(batch_time)
+            
+            print(f"Batch completed in {format_duration(batch_time)}")
+            
+            # Clear GPU cache to prevent memory buildup
+            if torch.cuda.is_available():
+                torch.cuda.empty_cache()
+                
+        except Exception as e:
+            print(f"Batch error: {e}")
+            # Fallback to individual processing for this batch
+            print("Falling back to individual question processing...")
+            
+            for i in batch_indices:
+                item = dataset[i]
+                question = item["question"]
+                expected_answer = item["numerical_answer"]
+                
+                question_start_time = time.time()
+                
+                # Create messages for the model
+                messages = [
+                    {'role': 'system', 'content': 'You are a helpful assistant that solves math problems step by step. Please provide your solution as a Python function that returns the numerical answer.'},
+                    {'role': 'user', 'content': f'Solve this math problem: {question}'}
+                ]
+                
+                # Generate response individually
+                try:
+                    response = generate_response(
+                        model=model,
+                        tokenizer=tokenizer,
+                        messages=messages,
+                        max_new_tokens=512,
+                        temperature=0.7,
+                        top_p=0.9,
+                        top_k=50,
+                        do_sample=True
+                    )
+                    
+                    # Extract code from response
+                    extracted_code = extract_python_code(response)
+                    
+                    # Run the extracted code
+                    execution_result = run_code(extracted_code)
+                    
+                    # Determine status
+                    status = "UNCLEAR"
+                    if isinstance(execution_result, (int, float)) and execution_result == expected_answer:
+                        status = "CORRECT"
+                    elif hasattr(execution_result, '__call__'):
+                        try:
+                            actual_result = execution_result()
+                            if actual_result == expected_answer:
+                                status = "CORRECT"
+                            else:
+                                status = "INCORRECT"
+                        except:
+                            status = "ERROR"
+                    elif "Error:" in str(execution_result):
+                        status = "ERROR"
+                    else:
+                        status = "INCORRECT"
+                    
+                    # Calculate execution time for this question
+                    question_time = time.time() - question_start_time
+                    execution_times.append(question_time)
+                    
+                    # Store result for summary
+                    result = {
+                        "question_idx": i+1,
+                        "question": question,
+                        "expected_answer": expected_answer,
+                        "model_response": response,
+                        "extracted_code": extracted_code,
+                        "execution_result": str(execution_result),
+                        "status": status,
+                        "execution_time": question_time
+                    }
+                    results.append(result)
+                    
+                    # Save result incrementally
+                    save_result_incrementally(result, output_file)
+                    
+                    print(f"Question {i+1}: {status} (Time: {format_duration(question_time)})")
+                    
+                except Exception as individual_e:
+                    question_time = time.time() - question_start_time
+                    execution_times.append(question_time)
+                    
+                    print(f"Question {i+1}: ERROR - {individual_e} (Time: {format_duration(question_time)})")
+                    result = {
+                        "question_idx": i+1,
+                        "question": question,
+                        "expected_answer": expected_answer,
+                        "model_response": "",
+                        "extracted_code": "",
+                        "execution_result": f"Error: {individual_e}",
+                        "status": "ERROR",
+                        "execution_time": question_time
+                    }
+                    results.append(result)
+                    
+                    # Save result incrementally
+                    save_result_incrementally(result, output_file)
     
     # Results are already saved incrementally, just print completion message
     print("\nAll results have been saved incrementally during evaluation.")
@@ -377,5 +597,5 @@ if __name__ == "__main__":
     print(f"Correct Answers: {correct}")
     print(f"Accuracy: {correct/total*100:.1f}%")
     print(f"Total Time: {format_duration(total_time)}")
-    print(f"Average Time per Question: {format_duration(avg_time)}")
+    print(f"Average Time per Batch: {format_duration(avg_time)}")
     print(f"Results saved to: {output_file}")
