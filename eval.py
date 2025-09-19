@@ -9,9 +9,9 @@ from typing import Any, Dict, List, Tuple
 from datetime import datetime, timedelta
 
 # Configuration
-MODEL_PATH = "ThomasTheMaker/gm3-270m-TinyGSM-all"
+MODEL_PATH = "ThomasTheMaker/gm3-270m-tinygsm"
 DATASET_PATH = "gsm8k/dataset.json"
-OUTPUT_FILE = "gsm8k/evaluation_results.json"
+OUTPUT_FILE = "gsm8k/evaluation_results_og_tinygsm.json"
 BATCH_SIZE = 32  # Adjust based on your GPU memory
 
 # Generation parameters
@@ -215,14 +215,14 @@ def generate_batch_responses(model, tokenizer, batch_messages, max_new_tokens=No
     
     return generated_texts
 
-def calculate_eta(completed: int, total: int, execution_times: List[float]) -> str:
-    """Calculate ETA based on average execution time."""
-    if completed == 0 or not execution_times:
+def calculate_eta(completed_batches: int, total_batches: int, batch_execution_times: List[float]) -> str:
+    """Calculate ETA based on average batch execution time."""
+    if completed_batches == 0 or not batch_execution_times:
         return "Calculating..."
     
-    avg_time = sum(execution_times) / len(execution_times)
-    remaining = total - completed
-    eta_seconds = remaining * avg_time
+    avg_batch_time = sum(batch_execution_times) / len(batch_execution_times)
+    remaining_batches = total_batches - completed_batches
+    eta_seconds = remaining_batches * avg_batch_time
     
     eta_time = datetime.now() + timedelta(seconds=eta_seconds)
     return eta_time.strftime("%H:%M:%S")
@@ -467,7 +467,7 @@ if __name__ == "__main__":
     print("Loading dataset...")
     dataset = load_dataset(DATASET_PATH)
     
-    execution_times = []
+    batch_execution_times = []
     start_time = time.time()
     
     # Check for existing results and resume if possible
@@ -484,7 +484,9 @@ if __name__ == "__main__":
         print(f"Resuming evaluation from question {start_index + 1}")
     
     remaining_questions = len(dataset) - start_index
+    total_batches = (len(dataset) - start_index + BATCH_SIZE - 1) // BATCH_SIZE
     print(f"\nProcessing {remaining_questions} remaining questions with batch size {BATCH_SIZE}...")
+    print(f"Total batches to process: {total_batches}")
     
     # Process in batches
     for batch_start in range(start_index, len(dataset), BATCH_SIZE):
@@ -495,8 +497,8 @@ if __name__ == "__main__":
         batch_start_time = time.time()
         
         # Calculate and display ETA
-        completed_this_session = batch_start - start_index
-        eta = calculate_eta(completed_this_session, len(dataset) - start_index, execution_times)
+        completed_batches = (batch_start - start_index) // BATCH_SIZE
+        eta = calculate_eta(completed_batches, total_batches, batch_execution_times)
         elapsed = time.time() - start_time
         
         print(f"\nBatch {batch_start//BATCH_SIZE + 1}: Processing questions {batch_start+1}-{batch_end}... (ETA: {eta}, Elapsed: {format_duration(elapsed)})")
@@ -516,7 +518,7 @@ if __name__ == "__main__":
             
             # Calculate batch time
             batch_time = time.time() - batch_start_time
-            execution_times.append(batch_time)
+            batch_execution_times.append(batch_time)
             
             print(f"Batch completed in {format_duration(batch_time)}")
             
@@ -528,6 +530,9 @@ if __name__ == "__main__":
             print(f"Batch error: {e}")
             # Fallback to individual processing for this batch
             print("Falling back to individual question processing...")
+            
+            # For individual processing, we need to track question times separately
+            individual_execution_times = []
             
             for i in batch_indices:
                 item = dataset[i]
@@ -581,7 +586,7 @@ if __name__ == "__main__":
                     
                     # Calculate execution time for this question
                     question_time = time.time() - question_start_time
-                    execution_times.append(question_time)
+                    individual_execution_times.append(question_time)
                     
                     # Store result for summary
                     result = {
@@ -603,7 +608,7 @@ if __name__ == "__main__":
                     
                 except Exception as individual_e:
                     question_time = time.time() - question_start_time
-                    execution_times.append(question_time)
+                    individual_execution_times.append(question_time)
                     
                     print(f"Question {i+1}: ERROR - {individual_e} (Time: {format_duration(question_time)})")
                     result = {
@@ -620,6 +625,10 @@ if __name__ == "__main__":
                     
                     # Save result incrementally
                     save_result_incrementally(result)
+            
+            # Add the total batch time for individual processing
+            individual_batch_time = time.time() - batch_start_time
+            batch_execution_times.append(individual_batch_time)
     
     # Results are already saved incrementally, just print completion message
     print("\nAll results have been saved incrementally during evaluation.")
@@ -628,12 +637,12 @@ if __name__ == "__main__":
     correct = sum(1 for r in results if r.get('status') == 'CORRECT')
     total = len(results)
     total_time = time.time() - start_time
-    avg_time = sum(execution_times) / len(execution_times) if execution_times else 0
+    avg_batch_time = sum(batch_execution_times) / len(batch_execution_times) if batch_execution_times else 0
     
     print(f"\nEvaluation Complete!")
     print(f"Total Questions: {total}")
     print(f"Correct Answers: {correct}")
     print(f"Accuracy: {correct/total*100:.1f}%")
     print(f"Total Time: {format_duration(total_time)}")
-    print(f"Average Time per Batch: {format_duration(avg_time)}")
+    print(f"Average Time per Batch: {format_duration(avg_batch_time)}")
     print(f"Results saved to: {OUTPUT_FILE}")
