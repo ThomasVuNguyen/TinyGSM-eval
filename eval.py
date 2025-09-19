@@ -414,13 +414,16 @@ if __name__ == "__main__":
     # Configuration
     MODEL_PATH = "ThomasTheMaker/gm3-270m-TinyGSM-all"
     DATASET_PATH = "gsm8k/dataset.json"
-    BATCH_SIZE = 4  # Adjust based on your GPU memory (1-8 recommended)
+    BATCH_SIZE = 32  # Adjust based on your GPU memory
     
-    # You can adjust BATCH_SIZE based on your GPU:
-    # - RTX 4090/A100: 8-16
-    # - RTX 3080/3090: 4-8  
-    # - RTX 3070 or lower: 2-4
-    # - If you get CUDA out of memory errors, reduce batch size
+    # You can adjust BATCH_SIZE based on your GPU memory:
+    # RTX 4060 (8GB): You're currently using ~900MB, try 24-48 for better utilization
+    # RTX 4090/A100: 32-64
+    # RTX 3080/3090: 16-32  
+    # RTX 3070 or lower: 8-16
+    # If you get CUDA out of memory errors, reduce batch size
+    
+    print(f"Using batch size: {BATCH_SIZE}")
     
     print("Loading model...")
     model, tokenizer = load_model(MODEL_PATH)
