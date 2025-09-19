@@ -8,6 +8,23 @@ import time
 from typing import Any, Dict, List, Tuple
 from datetime import datetime, timedelta
 
+# Configuration
+MODEL_PATH = "ThomasTheMaker/gm3-270m-TinyGSM-all"
+DATASET_PATH = "gsm8k/dataset.json"
+OUTPUT_FILE = "gsm8k/evaluation_results.json"
+BATCH_SIZE = 32  # Adjust based on your GPU memory
+
+# Generation parameters
+MAX_NEW_TOKENS = 512
+TEMPERATURE = 0.7
+TOP_P = 0.9
+TOP_K = 50
+DO_SAMPLE = True
+
+# Model loading parameters
+MAX_SEQ_LENGTH = 2048
+LOAD_IN_4BIT = False
+
 # Set environment variables to avoid compilation issues
 os.environ["TORCH_COMPILE"] = "0"
 os.environ["TRITON_DISABLE_LINE_INFO"] = "1" 
@@ -100,8 +117,12 @@ def run_code(code: str) -> Any:
 
 
 # Load the fine-tuned model (adjust path as needed)
-def load_model(model_path, max_seq_length=2048, load_in_4bit=False):
+def load_model(model_path=None, max_seq_length=None, load_in_4bit=None):
     """Load the fine-tuned model and tokenizer"""
+    model_path = model_path or MODEL_PATH
+    max_seq_length = max_seq_length or MAX_SEQ_LENGTH
+    load_in_4bit = load_in_4bit if load_in_4bit is not None else LOAD_IN_4BIT
+    
     model, tokenizer = FastLanguageModel.from_pretrained(
         model_name=model_path,  # Path to your fine-tuned model
         max_seq_length=max_seq_length,
@@ -109,8 +130,13 @@ def load_model(model_path, max_seq_length=2048, load_in_4bit=False):
     )
     return model, tokenizer
 
-def generate_response(model, tokenizer, messages, max_new_tokens=512, temperature=1.0, top_p=0.95, top_k=64, do_sample=True):
+def generate_response(model, tokenizer, messages, max_new_tokens=None, temperature=None, top_p=None, top_k=None, do_sample=None):
     """Generate a response using the fine-tuned model"""
+    max_new_tokens = max_new_tokens or MAX_NEW_TOKENS
+    temperature = temperature if temperature is not None else TEMPERATURE
+    top_p = top_p if top_p is not None else TOP_P
+    top_k = top_k if top_k is not None else TOP_K
+    do_sample = do_sample if do_sample is not None else DO_SAMPLE
     
     # Apply chat template to format the input
     text = tokenizer.apply_chat_template(
@@ -140,8 +166,13 @@ def generate_response(model, tokenizer, messages, max_new_tokens=512, temperatur
     generated_text = tokenizer.decode(outputs[0], skip_special_tokens=True)
     return generated_text
 
-def generate_batch_responses(model, tokenizer, batch_messages, max_new_tokens=512, temperature=1.0, top_p=0.95, top_k=64, do_sample=True):
+def generate_batch_responses(model, tokenizer, batch_messages, max_new_tokens=None, temperature=None, top_p=None, top_k=None, do_sample=None):
     """Generate responses for a batch of message sets using the fine-tuned model"""
+    max_new_tokens = max_new_tokens or MAX_NEW_TOKENS
+    temperature = temperature if temperature is not None else TEMPERATURE
+    top_p = top_p if top_p is not None else TOP_P
+    top_k = top_k if top_k is not None else TOP_K
+    do_sample = do_sample if do_sample is not None else DO_SAMPLE
     
     # Apply chat template to all inputs
     batch_texts = []
@@ -159,7 +190,7 @@ def generate_batch_responses(model, tokenizer, batch_messages, max_new_tokens=51
         return_tensors="pt",
         padding=True,
         truncation=True,
-        max_length=2048  # Adjust based on your model's context length
+        max_length=MAX_SEQ_LENGTH  # Use configuration variable
     ).to("cuda")
     
     # Generate responses for the batch
@@ -205,8 +236,9 @@ def format_duration(seconds: float) -> str:
     else:
         return f"{seconds/3600:.1f}h"
 
-def save_all_results(results: List[Dict], output_path: str = "gsm8k/evaluation_results.json"):
+def save_all_results(results: List[Dict], output_path: str = None):
     """Save all results to a single JSON file."""
+    output_path = output_path or OUTPUT_FILE
     
     # Calculate summary statistics
     correct = sum(1 for r in results if r.get('status') == 'CORRECT')
@@ -217,8 +249,8 @@ def save_all_results(results: List[Dict], output_path: str = "gsm8k/evaluation_r
     output_data = {
         "metadata": {
             "timestamp": datetime.now().isoformat(),
-            "model_path": "ThomasTheMaker/gm3-270m-TinyGSM-all",
-            "dataset_path": "gsm8k/dataset.json",
+            "model_path": MODEL_PATH,
+            "dataset_path": DATASET_PATH,
             "total_questions": total,
             "correct_answers": correct,
             "accuracy_percentage": round(accuracy, 2)
@@ -238,13 +270,15 @@ def save_all_results(results: List[Dict], output_path: str = "gsm8k/evaluation_r
     
     return output_path
 
-def initialize_results_file(output_path: str = "gsm8k/evaluation_results.json"):
+def initialize_results_file(output_path: str = None):
     """Initialize the results file with metadata structure."""
+    output_path = output_path or OUTPUT_FILE
+    
     initial_data = {
         "metadata": {
             "timestamp": datetime.now().isoformat(),
-            "model_path": "ThomasTheMaker/gm3-270m-TinyGSM-all",
-            "dataset_path": "gsm8k/dataset.json",
+            "model_path": MODEL_PATH,
+            "dataset_path": DATASET_PATH,
             "total_questions": 0,
             "correct_answers": 0,
             "accuracy_percentage": 0.0
@@ -263,8 +297,10 @@ def initialize_results_file(output_path: str = "gsm8k/evaluation_results.json"):
     
     return output_path
 
-def save_result_incrementally(result: Dict, output_path: str = "gsm8k/evaluation_results.json"):
+def save_result_incrementally(result: Dict, output_path: str = None):
     """Save a single result incrementally to the JSON file."""
+    output_path = output_path or OUTPUT_FILE
+    
     # Read current data
     with open(output_path, 'r', encoding='utf-8') as f:
         data = json.load(f)
@@ -388,8 +424,10 @@ def process_batch(model, tokenizer, batch_items, batch_indices, output_file, bat
     
     return batch_results
 
-def load_existing_results(output_path: str = "gsm8k/evaluation_results.json") -> Tuple[List[Dict], int]:
+def load_existing_results(output_path: str = None) -> Tuple[List[Dict], int]:
     """Load existing results and return them along with the next question index to process."""
+    output_path = output_path or OUTPUT_FILE
+    
     if not os.path.exists(output_path):
         return [], 0
     
@@ -411,11 +449,6 @@ def load_existing_results(output_path: str = "gsm8k/evaluation_results.json") ->
 
 # Main evaluation function
 if __name__ == "__main__":
-    # Configuration
-    MODEL_PATH = "ThomasTheMaker/gm3-270m-TinyGSM-all"
-    DATASET_PATH = "gsm8k/dataset.json"
-    BATCH_SIZE = 32  # Adjust based on your GPU memory
-    
     # You can adjust BATCH_SIZE based on your GPU memory:
     # RTX 4060 (8GB): You're currently using ~900MB, try 24-48 for better utilization
     # RTX 4090/A100: 32-64
@@ -424,9 +457,12 @@ if __name__ == "__main__":
     # If you get CUDA out of memory errors, reduce batch size
     
     print(f"Using batch size: {BATCH_SIZE}")
+    print(f"Model: {MODEL_PATH}")
+    print(f"Dataset: {DATASET_PATH}")
+    print(f"Output file: {OUTPUT_FILE}")
     
     print("Loading model...")
-    model, tokenizer = load_model(MODEL_PATH)
+    model, tokenizer = load_model()
     
     print("Loading dataset...")
     dataset = load_dataset(DATASET_PATH)
@@ -435,13 +471,12 @@ if __name__ == "__main__":
     start_time = time.time()
     
     # Check for existing results and resume if possible
-    output_file = "gsm8k/evaluation_results.json"
-    existing_results, start_index = load_existing_results(output_file)
+    existing_results, start_index = load_existing_results()
     
     if start_index == 0:
         # Initialize fresh results file
-        initialize_results_file(output_file)
-        print(f"Initialized fresh results file: {output_file}")
+        initialize_results_file()
+        print(f"Initialized fresh results file: {OUTPUT_FILE}")
         results = []
     else:
         # Resume from existing results
@@ -473,7 +508,7 @@ if __name__ == "__main__":
                 tokenizer=tokenizer,
                 batch_items=batch_items,
                 batch_indices=batch_indices,
-                output_file=output_file,
+                output_file=OUTPUT_FILE,
                 batch_start_time=batch_start_time
             )
             
@@ -562,7 +597,7 @@ if __name__ == "__main__":
                     results.append(result)
                     
                     # Save result incrementally
-                    save_result_incrementally(result, output_file)
+                    save_result_incrementally(result)
                     
                     print(f"Question {i+1}: {status} (Time: {format_duration(question_time)})")
                     
@@ -584,7 +619,7 @@ if __name__ == "__main__":
                     results.append(result)
                     
                     # Save result incrementally
-                    save_result_incrementally(result, output_file)
+                    save_result_incrementally(result)
     
     # Results are already saved incrementally, just print completion message
     print("\nAll results have been saved incrementally during evaluation.")
@@ -601,4 +636,4 @@ if __name__ == "__main__":
     print(f"Accuracy: {correct/total*100:.1f}%")
     print(f"Total Time: {format_duration(total_time)}")
     print(f"Average Time per Batch: {format_duration(avg_time)}")
-    print(f"Results saved to: {output_file}")
+    print(f"Results saved to: {OUTPUT_FILE}")
