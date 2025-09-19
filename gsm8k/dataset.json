@@ -1,52 +1,52 @@
 [
   {
-    "question": "Because of the migration of salmon, the total number of salmon in river Trout has increased by ten times the number initially in the river. If there were 500 salmons initially, calculate the total number of fish in the river now.",
-    "answer": "If the number of salmons in the river increased by ten times the number initially there, then 500*10 = <<500*10=5000>>5000 new salmons migrated up the river.\nThe total number of salmon in the river now is 5000+500 = <<5000+500=5500>>5500\n#### 5500",
-    "numerical_answer": 5500
+    "question": "Jimmy has 18 cards. Jimmy gives three cards to Bob. If Jimmy gives Mary twice as many cards as he gave to Bob, how many cards does Jimmy have left?",
+    "answer": "Mary has 2 * 3 = <<2*3=6>>6 cards.\nJimmy has 18 - 3 - 6 = <<18-3-6=9>>9 cards left.\n#### 9",
+    "numerical_answer": 9
   },
   {
-    "question": "Thor is 13 times older than Captain America. Captain America is 7 times older than Peter Parker, and Ironman is 32 years older than Peter Parker. How old is Ironman if Thor is 1456 years old?",
-    "answer": "Captain America is 1456/13 = <<1456/13=112>>112 years old\nPeter Parker is 112/ 7 = <<112/7=16>>16 years old\nIronman is 16 + 32 = <<16+32=48>>48 years old\n#### 48",
-    "numerical_answer": 48
-  },
-  {
-    "question": "Faith is getting paid $13.50 per hour. She normally works 8 hours a day, 5 days a week, plus 2 hours of overtime per day. How much will she earn by the end of the week?",
-    "answer": "Faith earns $13.50 x 8 = $<<13.5*8=108>>108 per day.\nSince she works 5 days a week, she earns 5 x $108 = $<<5*108=540>>540 per week.\nShe gets an additional 2 x $13.50 = $<<2*13.5=27>>27 per day for the overtime pay.\nShe earns a total of $27 x 5 = $<<27*5=135>>135 additional pay for her weekly overtime.\nTherefore, Faith earns $540 + $135 = $<<540+135=675>>675 per week.\n#### 675",
-    "numerical_answer": 675
-  },
-  {
-    "question": "A class of 30 high school students is preparing for a field trip. If each student contributes $2 every Friday for their trip, how many dollars will they have in 2 months?",
-    "answer": "They save 30 students * $2/student/week = $<<30*2=60>>60/week\nThey saved for 2 months which is 2 months * 4 weeks/month = <<2*4=8>>8 weeks\nSo in 2 months, they will have $60/week * 8 weeks = $<<60*8=480>>480\n#### 480",
-    "numerical_answer": 480
-  },
-  {
-    "question": "How many right triangles with a height of 2 inches and a width of two inches could fit inside a square with 2-inch sides?",
-    "answer": "A triangle with a height of 2 inches and width of 2 inches has an area of 2 square inches because (1/2) x 2 x 2 = <<(1/2)*2*2=2>>2\nThe square has an area of 4 square inches because 2 x 2 = <<2*2=4>>4\n2 triangles would fit because 4 / 2 = <<4/2=2>>2\n#### 2",
-    "numerical_answer": 2
-  },
-  {
-    "question": "Care and Rick have a repair shop. Each repair is priced differently: phone repair costs $11, laptop repair costs $15 and computer repair costs $18. If they perform 5 phone repairs, 2 laptop repairs, and 2 computer repairs for this week, how much did they earn for the week?",
-    "answer": "They earned $11 x 5 = $<<11*5=55>>55 for the phone repairs.\nThey earned $15 x 2 = $<<15*2=30>>30 for the laptop repairs.\nThey also earned $18 x 2 = $<<18*2=36>>36 for computer repairs.\nTherefore, Care and Rick earned $55 + $30 + $36 = $<<55+30+36=121>>121 for the week.\n#### 121",
-    "numerical_answer": 121
-  },
-  {
-    "question": "Ursula is working at a marketing firm. She created a 30-second long commercial. Her boss told her that this commercial is too long to air and told her to shorten the commercial by 30%. How long will this commercial be after Ursula makes the desired changes?",
-    "answer": "Ursula's boss want's the commercial to be 30/100 * 30 = <<30/100*30=9>>9 seconds shorter.\nAfter Ursula makes the desired changes, the ad is going to be 30 - 9 = <<30-9=21>>21 seconds long.\n#### 21",
+    "question": "Ember is half as old as Nate who is 14.  When she is 14 herself, how old will Nate be?",
+    "answer": "Ember is 14 / 2 = <<14/2=7>>7 years old.\nWhen she is 14, Nate will be 14 + 7 = <<14+7=21>>21 years old.\n#### 21",
     "numerical_answer": 21
   },
   {
-    "question": "Delta, Beta and Gamma decided to share 40 donuts. Delta took 8 donuts and Beta took three times as many as Gamma. How many donuts did Gamma receive?",
-    "answer": "Let x = the number of donuts Gamma took.\nThe total donuts Gamma and Beta have is 40 - 8 = <<40-8=32>>32 donuts.\n3x is the number of donuts for Beta.\n3x + x is the number of total donuts for Beta and Gamma.\nIf we add the two x terms, we get 4x = 32.\nIf we divide both sides by 4, we get x = 8, so Gamma has 8 donuts.\n#### 8",
+    "question": "On Monday Samson ate 3 sandwiches at lunch and ate twice as many at dinner. The next morning, he felt sick from eating all those sandwiches, so he only ate one sandwich for breakfast. How many more sandwiches in total did Samson eat on Monday than Tuesday?",
+    "answer": "Samson ate 3 sandwiches x 2 = <<3*2=6>>6 sandwiches at dinner on Monday\nHe ate 3 sandwiches + 6 sandwiches = <<3+6=9>>9 sandwiches total on Monday\nTherefore, he ate 9 sandwiches - 1 sandwich = 8 more sandwiches on Monday than Tuesday\n#### 8",
     "numerical_answer": 8
   },
   {
-    "question": "Ray buys a pack of hamburger meat for $5.00, a box of crackers for $3.50, 4 bags of frozen vegetables at $2.00 per bag and a pack of cheese for $3.50 at the grocery store.  Because he is a store rewards member, he gets 10% off of his purchase.  What does his total grocery bill come to?",
-    "answer": "He buys 4 bags of frozen vegetables for $2.00 a bag so that\u2019s 4*2 = $<<4*2=8.00>>8.00\nThe meat is $5.00, the crackers are $3.50, the vegetables are $8.00 and the cheese is $3.50 for a total of 5+3.50+8+3.50 = $<<5+3.5+8+3.5=20.00>>20.00\nHe gets 10% discount on his $20.00 purchase so that\u2019s .10*20 = $<<20*.10=2.00>>2.00 off\nHis final grocery bill will be 20-2 = $<<20-2=18.00>>18.00\n#### 18",
-    "numerical_answer": 18
+    "question": "Carson needs to mow the lawn and plant some flowers. Carson has to mow 40 lines to cover the whole yard, and it takes him 2 minutes to mow one line. He also needs to plant 8 rows of flowers, each with 7 flowers, and it takes him half a minute to plant each flower. How many minutes will Carson spend gardening?",
+    "answer": "First find the total time Carson spends mowing: 40 lines * 2 minutes/line = <<40*2=80>>80 minutes\nThen find the total number of flowers Carson plants: 8 rows * 7 flowers/row = <<8*7=56>>56 flowers\nThen multiply that number by the time taken to plant each flower to find the total time spent planting flowers: .5 minutes/flower * 56 flowers = <<.5*56=28>>28 minutes\nFinally, add that time to the time spent mowing to find the total time spent gardening: 28 minutes + 80 minutes = <<28+80=108>>108 minutes\n#### 108",
+    "numerical_answer": 108
   },
   {
-    "question": "Tamika drove for 8 hours at an average speed of 45 miles per hour. Logan drove for 5 hours at 55 miles an hour. How many miles farther did Tamika drive?",
-    "answer": "Tamika drove 8 hours * 45 mph = <<8*45=360>>360 miles\nLogan drove 5 hours * 55 mph = <<5*55=275>>275 miles\n360 - 275 = <<360-275=85>>85 miles\nTamika drove 85 miles farther.\n#### 85",
-    "numerical_answer": 85
+    "question": "Rose bought a plant with a 10% discount. If the price is $10, how much did Rose pay after the discount?",
+    "answer": "The plant has $10 x 10/100 = $1 discount.\nSo, Rose paid $10 - $1 = $<<10-1=9>>9 for the plant.\n#### 9",
+    "numerical_answer": 9
+  },
+  {
+    "question": "James can buy a new computer for $600 and have it last 6 years, or buy 2 used computers for $200 each that each last 3 years. How much money will he save by picking the cheaper option?",
+    "answer": "First find the cost of the two used computers: $200/computer * 2 computers = $<<200*2=400>>400\nThen subtract that cost from the cost of the new computer to find the savings: $600 - $400 = $<<600-400=200>>200\n#### 200",
+    "numerical_answer": 200
+  },
+  {
+    "question": "Betty is growing parsnips in her vegetable garden. When the parsnips are grown, they are harvested and bundled into boxes that can hold up to 20 parsnips each. Each harvest, three-quarters of the boxes are full, and the remaining boxes are half-full. She gets an average of 20 boxes each harvest. How many parsnips does Betty grow in an average harvest?",
+    "answer": "If three-quarters of the boxes are full, then 1 \u2013 \u00be = \u00bc of the boxes are half-full.\nOn average, each harvest therefore has 20 boxes * 0.25 = <<20*0.25=5>>5 boxes that are half-full.\nThis leaves 20 total boxes \u2013 5 half-full boxes = <<20-5=15>>15 full boxes.\nHalf-full boxes hold 20 parsnips / 2 = <<20/2=10>>10 parsnips each.\nIn total, the half-full boxes, therefore, hold 5 boxes * 10 parsnips = <<5*10=50>>50 parsnips.\nThe full boxes hold a total of 15 boxes * 20 parsnips = <<15*20=300>>300 parsnips.\nSo Betty harvests a total of 50 + 300 = <<50+300=350>>350 parsnips in an average harvest.\n#### 350",
+    "numerical_answer": 350
+  },
+  {
+    "question": "Haleigh decides that instead of throwing away old candles, she can use the last bit of wax combined together to make new candles. Each candle has 10% of it's original wax left. How many 5 ounce candles can she make if she has five 20 oz candles, 5 five ounce candles, and twenty-five one ounce candles?",
+    "answer": "She gets 2 ounces of wax from a 20 ounce candle because 20 x .1 = <<20*.1=2>>2\nShe gets 10 ounces total from these candles because 5 x 2 = <<5*2=10>>10\nShe gets .5 ounces of wax from each five ounce candle because 5 x .1 = <<5*.1=.5>>.5\nShe gets 1.5 ounces total from these candles because 5 x .5 = <<5*.5=2.5>>2.5\nShe gets .1 ounces from each one ounce candle because 1 x .1 = <<1*.1=.1>>.1\nShe gets 2.5 ounces from these candles because 25 x .1 = <<25*.1=2.5>>2.5\nShe gets 15 ounces total because 10 + 2.5 + 2.5 = <<10+2.5+2.5=15>>15\nShe can make 3 candles because 15 / 5 = <<15/5=3>>3\n#### 3",
+    "numerical_answer": 3
+  },
+  {
+    "question": "Emma can run all-around two arenas in 20 hours. If it takes Fernando twice as long to run his course, what's the total time it takes both of them to run all around the two arenas?",
+    "answer": "If it takes Emma 20 hours to run all around the two arenas, it takes Fernando 2*20 = <<20*2=40>>40 hours to run the same distance.\nTogether, they take a total of 40+20 = <<40+20=60>>60 hours to run all around the arenas.\n#### 60",
+    "numerical_answer": 60
+  },
+  {
+    "question": "John has 54 pieces of gum, Cole has 45 pieces of gum and Aubrey has no pieces of gum. They decide to share the gum equally between the 3 of them. How many pieces of gum will each one get?",
+    "answer": "Total pieces of gum are 54 pieces + 45 pieces + 0 pieces = <<54+45=99>>99 pieces\nWhen the pieces are shared equally amongst 3 people, each one gets 99 pieces / 3 people = <<99/3=33>>33 pieces/person\n#### 33",
+    "numerical_answer": 33
   }
 ]
