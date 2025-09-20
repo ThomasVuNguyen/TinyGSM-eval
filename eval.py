@@ -9,9 +9,9 @@ from typing import Any, Dict, List, Tuple
 from datetime import datetime, timedelta
 
 # Configuration
-MODEL_PATH = "ThomasTheMaker/gm3-270m-tinygsm-o4mini-reasoning"
+MODEL_PATH = "ThomasTheMaker/gm3-27m-TinyGSM-Llama33-70B"
 DATASET_PATH = "gsm8k/dataset.json"
-OUTPUT_FILE = "gsm8k/evaluation_results_o4_mini.json"
+OUTPUT_FILE = "gsm8k/evaluation_results_llama33-70b.json"
 BATCH_SIZE = 32  # Adjust based on your GPU memory
 
 # Generation parameters
